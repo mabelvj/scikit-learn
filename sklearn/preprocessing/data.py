@@ -1014,10 +1014,12 @@ class RobustScaler(BaseEstimator, TransformerMixin):
     """
 
     def __init__(self, with_centering=True, with_scaling=True,
-                 quantile_range=(25.0, 75.0), copy=True):
+                 quantile_range=(25.0, 75.0), gauss_adjust=False,
+                 copy=True):
         self.with_centering = with_centering
         self.with_scaling = with_scaling
         self.quantile_range = quantile_range
+        self.gauss_adjust = gauss_adjust
         self.copy = copy
 
     def _check_array(self, X, copy):
@@ -1054,7 +1056,14 @@ class RobustScaler(BaseEstimator, TransformerMixin):
                                  str(self.quantile_range))
 
             q = np.percentile(X, self.quantile_range, axis=0)
-            self.scale_ = (q[1] - q[0])
+            if self.gauss_adjust is True:
+                # Create scipy.stats.norm object
+                output_distribution = getattr(stats, 'norm')
+                self.adjust = output_distribution.ppf(q_max / 100.0) - \
+                    output_distribution.ppf(q_min / 100.0)
+            else:
+                self.adjust = 1.0
+            self.scale_ = (q[1] - q[0]) / self.adjust
             self.scale_ = _handle_zeros_in_scale(self.scale_, copy=False)
         return self
 
@@ -1252,6 +1261,7 @@ class PolynomialFeatures(BaseEstimator, TransformerMixin):
     See :ref:`examples/linear_model/plot_polynomial_interpolation.py
     <sphx_glr_auto_examples_linear_model_plot_polynomial_interpolation.py>`
     """
+
     def __init__(self, degree=2, interaction_only=False, include_bias=True):
         self.degree = degree
         self.interaction_only = interaction_only
@@ -1945,6 +1955,7 @@ class OneHotEncoder(BaseEstimator, TransformerMixin):
     sklearn.preprocessing.LabelEncoder : encodes labels with values between 0
       and n_classes-1.
     """
+
     def __init__(self, n_values="auto", categorical_features="all",
                  dtype=np.float64, sparse=True, handle_unknown='error'):
         self.n_values = n_values
