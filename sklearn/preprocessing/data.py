@@ -978,6 +978,8 @@ class RobustScaler(BaseEstimator, TransformerMixin):
 
         .. versionadded:: 0.18
 
+    guaus_adjust: boolean, False by default
+        If True, scale data to a standard Gaussian distributtion.
     copy : boolean, optional, default is True
         If False, try to avoid a copy and do inplace scaling instead.
         This is not guaranteed to always work inplace; e.g. if the data is
@@ -1056,14 +1058,13 @@ class RobustScaler(BaseEstimator, TransformerMixin):
                                  str(self.quantile_range))
 
             q = np.percentile(X, self.quantile_range, axis=0)
-            if self.gauss_adjust is True:
+            self.scale_ = (q[1] - q[0])
+            if self.gauss_adjust:
                 # Create scipy.stats.norm object
                 output_distribution = getattr(stats, 'norm')
-                self.adjust = output_distribution.ppf(q_max / 100.0) - \
+                self.adjust_ = output_distribution.ppf(q_max / 100.0) - \
                     output_distribution.ppf(q_min / 100.0)
-            else:
-                self.adjust = 1.0
-            self.scale_ = (q[1] - q[0]) / self.adjust
+                self.scale_ = self.scale_ / self.adjust_
             self.scale_ = _handle_zeros_in_scale(self.scale_, copy=False)
         return self
 
@@ -2343,9 +2344,9 @@ class QuantileTransformer(BaseEstimator, TransformerMixin):
             # If we don't do this, only one extreme of the duplicated is
             # used (the upper when we do assending, and the
             # lower for descending). We take the mean of these two
-            X_col = .5 * (np.interp(X_col, quantiles, self.references_)
-                          - np.interp(-X_col, -quantiles[::-1],
-                                      -self.references_[::-1]))
+            X_col = .5 * (np.interp(X_col, quantiles, self.references_) -
+                          np.interp(-X_col, -quantiles[::-1],
+                                    -self.references_[::-1]))
         else:
             X_col = np.interp(X_col, self.references_, quantiles)
 
