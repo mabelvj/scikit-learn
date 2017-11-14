@@ -980,6 +980,7 @@ class RobustScaler(BaseEstimator, TransformerMixin):
 
     guaus_adjust: boolean, False by default
         If True, scale data to a standard Gaussian distributtion.
+        
     copy : boolean, optional, default is True
         If False, try to avoid a copy and do inplace scaling instead.
         This is not guaranteed to always work inplace; e.g. if the data is
